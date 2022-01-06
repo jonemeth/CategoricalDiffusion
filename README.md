@@ -3,11 +3,10 @@
 Experimental implementation of 'Denoising Diffusion Probabilistic Models' using categorical variables.
 
 ## Samples
-<div>
-<div style="float: left; width: 49%; padding: 5px;">
-<img src="samples/samples.png" alt="mnist" style="width:100%"/>
-</div>
-<div style="float: left; width: 49%; padding: 5px;">
-<img src="samples/samples_cifar10.png" alt="cifar10" style="width:100%"/>
-</div>
-</div>
+<table style="padding:10px">
+<tr>
+<td><img src="samples/samples.png"  alt="1" width="400px" height="400px" ></td>
+<td><img src="samples/samples_cifar10.png" align="right" alt="2" width=400px height="400px"></td>
+</tr>
+</table>
+
