@@ -12,16 +12,17 @@ class CategoricalDiffusion:
         LINEAR = 'linear'
         EXPONENTIAL = 'exponential'
 
-    def __init__(self, num_classes: int, args):  # time_steps: int = 1000, schedule: Schedule = Schedule.EXPONENTIAL):
-        self.network = Network(2, num_levels=4, attn_levels=[0, 1, 2], norm_type=args.norm_type)
+    def __init__(self, image_shape, num_classes: int, args):
+        self.image_shape = image_shape
         self.num_classes = num_classes
         self.time_steps = args.time_steps
         self.schedule = args.schedule
 
+        self.network = Network(self.image_shape, num_classes, num_levels=4, attn_levels=[0, 1, 2], norm_type=args.norm_type)
+
     def compute_loss(self, x0, time):
         prior_prob = 1.0 / self.num_classes
         time_ = tf.reshape(time, [-1, 1, 1, 1, 1])
-
         x0 = one_hot_images(x0, self.num_classes, dtype=tf.float32)
 
         if self.schedule == CategoricalDiffusion.Schedule.LINEAR:
@@ -68,7 +69,7 @@ class CategoricalDiffusion:
         return loss
 
     def generate_images(self, n):
-        logits = np.zeros(shape=(n, 32, 32, 1, self.num_classes), dtype=np.float32)
+        logits = np.zeros(shape=[n]+self.image_shape+[self.num_classes], dtype=np.float32)
 
         for t in range(self.time_steps, 0, -1):
             times = [t] * n

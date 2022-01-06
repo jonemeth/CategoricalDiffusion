@@ -10,7 +10,7 @@ from network import NormType
 from utils import random_times
 
 
-def create_dataset():
+def create_dataset_mnist():
     print("Loading dataset", flush=True)
     print("tf.keras.backend.image_data_format(): ", tf.keras.backend.image_data_format(), flush=True)
     (train_images, _), (_, _) = tf.keras.datasets.mnist.load_data()
@@ -26,13 +26,33 @@ def create_dataset():
 
     print('datasets ready', flush=True)
 
-    return dataset
+    return dataset, [32, 32, 1], 2, False
+
+
+def create_dataset_cifar10():
+    num_classes = 8
+    print("Loading dataset", flush=True)
+    print("tf.keras.backend.image_data_format(): ", tf.keras.backend.image_data_format(), flush=True)
+    (train_images, _), (_, _) = tf.keras.datasets.cifar10.load_data()
+    train_images = train_images.reshape(train_images.shape[0], 32, 32, 3).astype('int32')
+
+    train_images //= (256//num_classes)
+
+    print("Building dataset", flush=True)
+    n_train = train_images.shape[0]
+    dataset = tf.data.Dataset.from_tensor_slices(train_images)\
+        .shuffle(n_train, reshuffle_each_iteration=True)\
+
+    print('datasets ready', flush=True)
+
+    return dataset, [32, 32, 3], num_classes, True
 
 
 def generate_and_save_images(model, out_filename):
     predictions = model.generate_images(64)
 
-    predictions *= 255
+    predictions *= 256 // model.num_classes
+    predictions += 128 // model.num_classes
 
     fig = plt.figure(figsize=(8, 8))
 
@@ -55,14 +75,25 @@ def train(args):
     else:
         os.makedirs(args.output_dir)
 
-    dataset = create_dataset().batch(args.batch_size)
-    model = CategoricalDiffusion(2, args)
+    if 'mnist' == args.dataset:
+      dataset, image_shape, num_classes, flip = create_dataset_mnist()
+    elif 'cifar10' == args.dataset:
+      dataset, image_shape, num_classes, flip = create_dataset_cifar10()
+    else:
+      print("Unknown dataset!")
+      return
+    
+    dataset = dataset.batch(args.batch_size)
+
+    model = CategoricalDiffusion(image_shape, num_classes, args)
 
     optimizer = tf.keras.optimizers.Adam(1e-4)
 
     loss_running = 0.0
     for epoch in range(args.epochs):
         for i,  batch in enumerate(dataset):
+            if flip:
+                batch = tf.image.random_flip_left_right(batch)
 
             t = random_times(batch.shape[0], model.time_steps)
 
@@ -84,6 +115,7 @@ def main():
                         type=CategoricalDiffusion.Schedule,
                         choices=list(CategoricalDiffusion.Schedule),
                         default=CategoricalDiffusion.Schedule.EXPONENTIAL)
+    parser.add_argument('--dataset', type=str, default='mnist')
     parser.add_argument('--time_steps', type=int, default=1000)
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=64)

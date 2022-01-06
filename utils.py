@@ -13,7 +13,7 @@ def sample_categorical_images(logits):
 
 
 def one_hot_images(x, num_classes, dtype):
-
-    indices = tf.reshape(x, [-1, 32 * 32 * 1])
+    H, W, C = x.shape[1:4]
+    indices = tf.reshape(x, [-1, H * W * C])
     out = tf.one_hot(indices, depth=num_classes, dtype=dtype)
-    return tf.reshape(out, [-1, 32, 32, 1, num_classes])
+    return tf.reshape(out, [-1, H, W, C, num_classes])

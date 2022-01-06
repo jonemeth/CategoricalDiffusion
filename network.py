@@ -114,9 +114,10 @@ class BasicBlock(tf.keras.layers.Layer):
 
 
 class Network(tf.keras.Model):
-    def __init__(self, num_classes, num_levels, attn_levels, norm_type: NormType, filter_num=64):
+    def __init__(self, image_shape, num_classes, num_levels, attn_levels, norm_type: NormType, filter_num=64):
         super().__init__()
 
+        self.image_shape = image_shape
         self.num_classes = num_classes
         self.filter_num = filter_num
 
@@ -155,7 +156,7 @@ class Network(tf.keras.Model):
             self.up_attns.append(MultiHeadAttention(d_model=filter_num, num_heads=8, attn_pdrop=0.0,
                                                     resid_pdrop=0.0) if i in attn_levels else None)
 
-        self.conv_out = tf.keras.layers.Conv2D(filters=1 * self.num_classes, kernel_size=(3, 3), strides=(1, 1),
+        self.conv_out = tf.keras.layers.Conv2D(filters=self.image_shape[2] * self.num_classes, kernel_size=(3, 3), strides=(1, 1),
                                                padding="same", kernel_initializer=tf.keras.initializers.Zeros(),
                                                bias_initializer=tf.keras.initializers.Constant(0.0))
 
@@ -172,7 +173,7 @@ class Network(tf.keras.Model):
         time_embedding = self.temb_dense2(time_embedding)
         time_embedding = tf.nn.swish(time_embedding)
 
-        x = tf.reshape(x, [-1, 32, 32, 1*self.num_classes])
+        x = tf.reshape(x, [-1, self.image_shape[0], self.image_shape[1], self.image_shape[2]*self.num_classes])
         x = self.conv0(x)
 
         f_list = []
@@ -195,6 +196,6 @@ class Network(tf.keras.Model):
 
         x = self.conv_out(x)
 
-        x = tf.reshape(x, [-1, 32, 32, 1, self.num_classes])
+        x = tf.reshape(x, [-1]+self.image_shape+[self.num_classes])
 
         return x
